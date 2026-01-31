@@ -4,8 +4,16 @@
 
 use std::env;
 use std::net::TcpStream;
+use terminal_banner::Banner;
+use colored::Colorize;
 
 fn main() {
+    let banner = Banner::new()
+        .text("rk-scan form RamKit".bold().to_string().into())
+        .text(format!("Powered by @{}", "ASX".bold()).into())
+        .render();
+    println!("{}", banner);
+
     let args: Vec<String> = env::args().collect();
 
     let mut custom_port: u32 = 0;
@@ -16,8 +24,7 @@ fn main() {
             custom_port = args[4].parse().expect("Invalid port");
         }
         _ => { 
-            println!("{} -t <ip> -<mode>", &args[0]);
-            return
+            menu()
         }
     }
 
@@ -31,8 +38,7 @@ fn main() {
             custom_scan(ip, custom_port);
         } 
         _ => { 
-            println!("{} -t <ip> -<mode>", &args[0]);
-            return
+            menu();
         }
     }
 }
@@ -87,6 +93,13 @@ fn special_scan(ip: &str) {
     for port in ports {
         scan(ip, port);
     }
-
 }
 
+fn menu() {
+    println!("{} -t <target> [options]", "rk-scan".bold().cyan());
+    println!("Options:");
+    println!("-d\t\tDefault scan (ports 1-100)");
+    println!("-s\t\tSpecial services scan");
+    println!("-c\t\tCustom port scan");
+    std::process::exit(0);
+}
