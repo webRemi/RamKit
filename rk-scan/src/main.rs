@@ -2,17 +2,17 @@
 // rk-scan by ASX //
 ////////////////////
 
+use colored::Colorize;
 use std::env;
-use std::net::TcpStream;
 use std::net::SocketAddr;
+use std::net::TcpStream;
+use std::thread;
 use std::time::Duration;
 use terminal_banner::Banner;
-use colored::Colorize;
-use std::thread;
 
 fn main() {
     let banner = Banner::new()
-        .text("rk-scan form RamKit".bold().to_string().into())
+        .text("rk-scan from RamKit".bold().to_string().into())
         .text(format!("Powered by @{}", "ASX".bold()).into())
         .render();
     println!("{}", banner);
@@ -26,9 +26,7 @@ fn main() {
         5 => {
             custom_port = args[4].parse().expect("Invalid port");
         }
-        _ => { 
-            menu()
-        }
+        _ => menu(),
     }
 
     let ip = &args[2];
@@ -39,8 +37,8 @@ fn main() {
         "-s" => special_scan(ip),
         "-c" => {
             custom_scan(ip, custom_port);
-        } 
-        _ => { 
+        }
+        _ => {
             menu();
         }
     }
@@ -69,7 +67,7 @@ fn default_scan(ip: &str) {
     let n_ports = 100;
     let mut n_scanned: u32 = 1;
 
-    let n_ports_threads = n_ports / n_threads; 
+    let n_ports_threads = n_ports / n_threads;
 
     for _thread in 1..=n_threads {
         let ports = match _thread {
@@ -81,7 +79,7 @@ fn default_scan(ip: &str) {
         handles.push(thread::spawn(move || {
             for port in ports {
                 scan(&ip_clone, port);
-            } 
+            }
         }));
         n_scanned += n_ports_threads;
     }
@@ -93,32 +91,32 @@ fn default_scan(ip: &str) {
 
 fn special_scan(ip: &str) {
     let ports = [
-        21,     // FTP
-        22,     // SSH
-        23,     // TELNET
-        53,     // DNS
-        80,     // HTTP
-        81,     // HTTPAPI
-        88,     // KERBEROS
-        111,    // RPC
-        389,    // LDAP
-        443,    // HTTPS
-        445,    // SMB
-        502,    // MODBUS
-        636,    // LDAPS
-        1433,   // MSSQL
-        3389,   // RDP
-        5900,   // VNC
-        5901,   // VNC
-        5985,   // WINRM
-        5986,   // WINRMS
-        8000,   // HTTP
-        8080,   // HTTP
-        8443,   // HTTPS
-        9001,   // PRINT
-        9100    // PRINT
+        21,   // FTP
+        22,   // SSH
+        23,   // TELNET
+        53,   // DNS
+        80,   // HTTP
+        81,   // HTTPAPI
+        88,   // KERBEROS
+        111,  // RPC
+        389,  // LDAP
+        443,  // HTTPS
+        445,  // SMB
+        502,  // MODBUS
+        636,  // LDAPS
+        1433, // MSSQL
+        3389, // RDP
+        5900, // VNC
+        5901, // VNC
+        5985, // WINRM
+        5986, // WINRMS
+        8000, // HTTP
+        8080, // HTTP
+        8443, // HTTPS
+        9001, // PRINT
+        9100, // PRINT
     ];
-    
+
     for port in ports {
         scan(ip, port);
     }
