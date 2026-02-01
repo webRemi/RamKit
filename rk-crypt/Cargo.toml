@@ -2,6 +2,8 @@
 name = "rk-crypt"
 version = "0.1.0"
 edition = "2024"
+authors = ["ASX"]
+description = "Cipher utility"
 
 [dependencies]
 terminal-banner = "0.4.1"
@@ -9,3 +11,4 @@ colored = "3.1.1"
 chacha20poly1305 = "0.10.1"
 fs = "0.0.5"
 sha2 = "0.10.9"
+clap = { version = "4.5.56", features = ["derive"] }
