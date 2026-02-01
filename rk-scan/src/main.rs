@@ -4,8 +4,11 @@
 
 use std::env;
 use std::net::TcpStream;
+use std::net::SocketAddr;
+use std::time::Duration;
 use terminal_banner::Banner;
 use colored::Colorize;
+use std::thread;
 
 fn main() {
     let banner = Banner::new()
@@ -45,7 +48,10 @@ fn main() {
 
 fn scan(ip: &str, port: u32) {
     let address = format!("{}:{}", ip, port);
-    let stream = TcpStream::connect(address);
+    let server: SocketAddr = address.parse().expect("Unable to parse socket address");
+    let duration = Duration::new(2, 0);
+
+    let stream = TcpStream::connect_timeout(&server, duration);
     match stream {
         Ok(_) => println!("[TCP] {}", port),
         Err(_) => (),
@@ -57,8 +63,31 @@ fn custom_scan(ip: &str, port: u32) {
 }
 
 fn default_scan(ip: &str) {
-    for port in 1..=100 {
-        scan(ip, port);
+    let mut handles = vec![];
+
+    let n_threads = 10;
+    let n_ports = 100;
+    let mut n_scanned: u32 = 1;
+
+    let n_ports_threads = n_ports / n_threads; 
+
+    for _thread in 1..=n_threads {
+        let ports = match _thread {
+            t if t == n_threads => n_scanned..n_ports + 1,
+            _ => n_scanned..n_scanned + n_ports_threads,
+        };
+
+        let ip_clone = ip.to_string();
+        handles.push(thread::spawn(move || {
+            for port in ports {
+                scan(&ip_clone, port);
+            } 
+        }));
+        n_scanned += n_ports_threads;
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
     }
 }
 
