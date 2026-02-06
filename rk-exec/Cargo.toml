@@ -1,0 +1,15 @@
+[package]
+name = "rk-exec"
+version = "0.1.0"
+author = "[ASX]"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.56", features = ["derive"] }
+ipnet = "2.11.0"
+smb = "0.11.1"
+thread = "0.0.1"
+tokio = { version = "1.49.0", features = ["full"] }
+
+[profile.release]
+strip = true
