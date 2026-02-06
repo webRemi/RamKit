@@ -5,6 +5,7 @@ use std::str::FromStr;
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 use tokio::time::{Duration, timeout};
+use colored::Colorize;
 
 // CONNECT TO SHARE
 pub async fn connect_share(client: &Client, server: &str, share_name: &str, username: &str, password: &str) -> Result<(), smb::Error>{
@@ -16,7 +17,7 @@ pub async fn connect_share(client: &Client, server: &str, share_name: &str, user
 pub async fn list_shares(connection: Result<(), smb::Error>, client: &Client, server: &str) {
    match connection {
         Ok(_c) => {
-            println!("[SHARES] Enumerating shares...");
+            println!("[+] [{}] Enumerating shares...", server);
             match client.list_shares(server).await {
                 Ok(shares) => {
                     println!("\tShares:\n\t=======");
@@ -62,7 +63,7 @@ pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<
         
     for ip in targets {
         if check_open(&ip, 445).await {
-            println!("[HOST] {}", ip);
+            println!("[+] [{}]", ip);
             
             for username in users {
                 for password in passwords {
@@ -71,7 +72,11 @@ pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<
                     match connection {
                         Ok(_c) => {
                             let is_admin = connect_share(&client, &ip, "ADMIN$", &username, &password).await.is_ok();
-                            println!("[ACCESS] {}:{} (Admin: {})", username, password, is_admin);
+                            if is_admin {
+                                println!("[+] [{}] {}:{} [{}]", ip, username, password, "ADMIN".green());
+                            } else {
+                                println!("[+] [{}] {}:{} [{}]", ip, username, password, "USER".yellow());
+                            }
                             if some_args.list {
                                 list_shares(connection, &client, &ip).await;
                             } else if let Some(ref share_target) = some_args.connect {
@@ -82,7 +87,7 @@ pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<
                             }
                             if is_bruteforce { break; }
                         }
-                        Err(_e) => println!("[-] {}:{}", username, password),
+                        Err(_e) => println!("[-] [{}] {}:{} [{}]", ip, username, password, "FAILED".red()),
                     }
                 }
             }
