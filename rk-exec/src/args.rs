@@ -17,6 +17,9 @@ pub struct Args {
 
     #[arg(short, long)]
     pub password: Option<String>,
+
+    #[arg(short, long)]
+    pub smart: bool,
 }
 
 pub fn extract_args() -> Args {
