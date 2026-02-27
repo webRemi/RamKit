@@ -7,10 +7,20 @@ use tokio::net::TcpStream;
 use tokio::time::{Duration, timeout};
 use colored::Colorize;
 
+// CHECK IF HASH OR NOT
+pub fn is_hash(password: &str) -> bool {
+    password.len() == 32 && password.chars().all(|c| c.is_ascii_hexdigit())
+}
+
 // CONNECT TO SHARE
 pub async fn connect_share(client: &Client, server: &str, share_name: &str, username: &str, password: &str) -> Result<(), smb::Error>{
+    let fin_password = if is_hash(password) {
+        format!("$NTLM$:{password}")
+    } else {
+        password.to_string()
+    };
     let target_path = UncPath::from_str(&format!(r"\\{}\{}", server, share_name)).unwrap();
-    client.share_connect(&target_path, &username, password.to_string()).await
+    client.share_connect(&target_path, &username, fin_password).await
 }
 
 // LIST AVAILABLE SHARES
