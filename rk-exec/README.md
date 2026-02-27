@@ -5,6 +5,7 @@ A network execution tool
 ```bash
 rk-exec -i <ip>
 rk-exec -i <ip> -u <users> -p <pass>
+rk-exec -i <ip> -u <users> -p <hash>
 rk-exec -i <ip> -u <users> -p <pass> -l
 rk-exec -i <ip> -i <users> -p <pass> -c <share>
 ```
