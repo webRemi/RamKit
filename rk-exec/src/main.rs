@@ -5,6 +5,7 @@
 mod args;
 mod scan;
 mod utils;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -13,12 +14,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hosts = utils::extract_infos(&some_args.ip).await;
     let targets = utils::expand_hosts(hosts);
 
-    let users = utils::extract_infos(&some_args.username.as_deref().unwrap_or("")).await;
-    let passwords = utils::extract_infos(&some_args.password.as_deref().unwrap_or("")).await;
+    let users = match some_args.username {
+        Some(ref u) => utils::extract_infos(u).await,
+        None => vec![],
+    };
+
+    let passwords = match some_args.password {
+        Some(ref p) => utils::extract_infos(p).await,
+        None => vec![],
+    };
 
     println!("[i] Scanning {} hosts", targets.len());
 
-    scan::attack(&users, &passwords, &targets, &some_args).await;
+    let users_arc = Arc::new(users);
+    let passwords_arc = Arc::new(passwords);
+    let targets_arc = Arc::new(targets);
+    let args_arc = Arc::new(some_args);
+
+    scan::attack(users_arc, passwords_arc, targets_arc, args_arc).await;
 
     Ok(())
 }

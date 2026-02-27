@@ -3,6 +3,7 @@ use tokio::fs;
 
 // TAKE FILE IF PROVIDED OTHERWISE USE INFO
 pub async fn extract_infos(file_path: &str) -> Vec<String> {
+    if file_path.is_empty() { return vec![]; }
     let mut infos: Vec<String> = Vec::new();
     let contents = fs::read_to_string(file_path).await;
     match contents {

