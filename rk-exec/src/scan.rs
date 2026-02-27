@@ -63,6 +63,7 @@ pub async fn check_open(ip: &str, port: u16) -> bool {
     }
 }
 
+// CORE ATTACK TECHNICAL BRUTEFORCE / SPRAYING / SMART / CONNECT SHARE / LIST SHARE
 pub async fn execute_auth(ip: &str, username: &str, password: &str, args: &Args, mode: &bool) {
     let client = Client::new(ClientConfig::default());
     let connection = connect_share(&client, &ip, "IPC$", &username, &password).await;
@@ -88,7 +89,7 @@ pub async fn execute_auth(ip: &str, username: &str, password: &str, args: &Args,
     }
 }
 
-// CORE ATTACK BRUTEFORCE / SPRAYING / CONNECT SHARE / LIST SHARE
+// CORE ATTACK DISPATCHING BRUTEFORCE / SPRAYING / SMART / CONNECT SHARE / LIST SHARE
 pub async fn attack(users: &Vec<String>, passwords: &Vec<String>, targets: &Vec<String>, some_args: &Args) {
     let is_spraying = users.len() > 1 && passwords.len() == 1;
     let is_bruteforce = users.len() == 1 && passwords.len() > 1;
